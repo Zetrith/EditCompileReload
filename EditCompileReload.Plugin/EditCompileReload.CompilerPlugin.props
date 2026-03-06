@@ -1,0 +1,3 @@
+﻿<Project>
+  <UsingTask TaskName="HotSwapTask" AssemblyFile="$(MSBuildThisFileDirectory)net472\Zetrith.EditCompileReload.CompilerPlugin.dll"/>
+</Project>

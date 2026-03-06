@@ -1,0 +1,11 @@
+﻿<Project>
+  <Target Name="MoveAsms" AfterTargets="CopyFilesToOutputDirectory">
+    <HotSwapTask ProjectAssembly="$(OutputPath)$(AssemblyName).dll" OutputFolder="$(IntermediateOutputPath)HotSwapAssemblies\">
+      <Output TaskParameter="MoveSourceFiles" ItemName="_MoveSourceFiles"/>
+      <Output TaskParameter="DestinationFiles" ItemName="_DestinationFiles"/>
+    </HotSwapTask>
+
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFiles="$(OutputPath)$(AssemblyName).dll_orig"/>
+    <Copy SourceFiles="@(_MoveSourceFiles)" DestinationFiles="@(_DestinationFiles)"/>
+  </Target>
+</Project>

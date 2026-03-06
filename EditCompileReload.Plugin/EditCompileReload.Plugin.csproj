@@ -1,0 +1,47 @@
+﻿<!--Inspired by krafs' Publicizer-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net472</TargetFramework>
+        <LangVersion>14</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <DevelopmentDependency>true</DevelopmentDependency>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <AssemblyName>EditCompileReload.CompilerPlugin</AssemblyName>
+        <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludePackageDependencies</TargetsForTfmSpecificBuildOutput>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <BuildOutputTargetFolder>build</BuildOutputTargetFolder>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package properties">
+      <Title>EditCompileReload.Plugin</Title>
+      <PackageId>EditCompileReload.CompilerPlugin</PackageId>
+      <Authors>Zetrith</Authors>
+      <Version>1.0.0</Version>
+      <Description>The compiler plugin for EditCodeReload.</Description>
+      <PackageProjectUrl>https://github.com/Zetrith/EditCodeReload</PackageProjectUrl>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
+      <RepositoryUrl>https://github.com/Zetrith/EditCodeReload</RepositoryUrl>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.3.3" />
+      <PackageReference Include="EditCompileReload" Version="1.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\EditCompileReload\EditCompileReload.csproj" />
+      <Content Include="EditCompileReload.CompilerPlugin.targets" PackagePath="build" />
+      <Content Include="EditCompileReload.CompilerPlugin.props" PackagePath="build" />
+    </ItemGroup>
+
+    <Target Name="IncludePackageDependencies">
+      <ItemGroup>
+        <BuildOutputInPackage Include="$(OutputPath)*.dll" />
+      </ItemGroup>
+    </Target>
+
+</Project>
