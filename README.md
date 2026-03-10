@@ -1,5 +1,5 @@
 # EditCompileReload (ECR)
-<img width="400" alt="ecr_diagram" src="https://github.com/user-attachments/assets/2b5df958-ada0-47d8-8035-7bf9653d4992" />
+<img width="400" alt="ecr_diagram" src="https://github.com/user-attachments/assets/7a92846c-9795-40e2-9988-1b7696e8bf77" />
 
 Hot code reload as a library for .NET 3.5+ driven by a file watcher.
 
