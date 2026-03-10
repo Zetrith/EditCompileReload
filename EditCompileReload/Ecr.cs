@@ -40,15 +40,15 @@ public class Ecr
         }
     }
 
-    // todo note about dllName extension
-    public static void RegisterAssemblyWatcher(string folderPath, string dllName)
+    public static void RegisterFileWatcher(string filePath)
     {
+        var fileName = Path.GetFileName(filePath);
         var watcher = new FileSystemWatcher();
-        watcher.Path = folderPath;
+        watcher.Path = Path.GetDirectoryName(filePath);
         watcher.NotifyFilter = NotifyFilters.LastWrite;
-        watcher.Filter = "*" + Path.GetExtension(dllName);
+        watcher.Filter = fileName;
 
-        var origAsm = AssemblyDefinition.FromImage(PEImage.FromFile(Path.Combine(folderPath, dllName)));
+        var origAsm = AssemblyDefinition.FromImage(PEImage.FromFile(filePath));
         string origAsmName = origAsm.Name!;
         var origAsmReflection = AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == origAsmName);
 
@@ -60,9 +60,9 @@ public class Ecr
 
         watcher.Changed += (_, e) =>
         {
-            EcrLog.Verbose($"Got change event: {e.FullPath} {e.Name} {dllName}");
+            EcrLog.Verbose($"Got change event: {e.FullPath} {e.Name} {fileName}");
 
-            if (!e.FullPath.EndsWith(dllName)) return;
+            if (!e.FullPath.EndsWith(fileName)) return;
 
             var version = AsmStore.assemblyData[origAsmName].version;
             actionQueue.Enqueue(() =>

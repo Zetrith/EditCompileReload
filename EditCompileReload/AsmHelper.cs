@@ -95,4 +95,9 @@ public static class AsmHelper
             return $"0x{self.MetadataToken.ToString()}";
         }
     }
+
+    internal static HashSet<T> ToHashSet<T>(this IEnumerable<T> e)
+    {
+        return new HashSet<T>(e);
+    }
 }

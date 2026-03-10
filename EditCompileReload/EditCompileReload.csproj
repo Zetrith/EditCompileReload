@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net472;net5.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net35;net472;net5.0;net10.0</TargetFrameworks>
     <LangVersion>14</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <AssemblyName>EditCompileReload</AssemblyName>
@@ -15,7 +14,7 @@
     <PackageId>EditCompileReload</PackageId>
     <Authors>Zetrith</Authors>
     <Version>1.0.0</Version>
-    <Description>Hot code reload as a library for .NET Framework 4.7.2 and higher.</Description>
+    <Description>Hot code reload as a library for .NET Framework 3.5 and higher.</Description>
     <PackageProjectUrl>https://github.com/Zetrith/EditCodeReload.CompilerPlugin</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Zetrith/EditCodeReload.CompilerPlugin</RepositoryUrl>

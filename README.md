@@ -16,6 +16,8 @@ using EditCompileReload;
 #endif
 // ...
 #if DEBUG
+EcrLog.messageCallback = ...
+EcrLog.errorCallback = ...
 Ecr.RegisterFileWatcher(\* assembly.dll_orig *\); // <--- Note the .dll_orig when using the compiler plugin
 #endif
 ```
@@ -26,7 +28,9 @@ using EditCompileReload;
 #endif
 // ...
 #if DEBUG
-Ecr.RegisterFileWatcher(\* assembly.dll_orig *\); // <--- Note the .dll_orig when using the compiler plugin
+EcrLog.messageCallback = s => Log.Message(s);
+EcrLog.errorCallback = s => Log.Error(s);
+Ecr.RegisterFileWatcher(@"C:\Users\User\Documents\EditCompileReload\TestAssembly1\bin\Debug\net472\TestAssembly1.dll_orig"); // <--- Note the .dll_orig when using the compiler plugin
 #endif
 ```
 
@@ -68,7 +72,7 @@ It's best to look at an example in the [test suite](https://github.com/Zetrith/E
 
 ## Compiler plugin
 The compiler plugin runs an MSBuild task, `HotSwapTask`, which, after the `CopyFilesToOutputDirectory` target:
-- Rewrites the project assembly adding helpers for hotswapping
+- Instruments the project assembly adding helpers for hotswapping
 - Copies the original project assembly to a file with a `.dll_orig` extension
 
 ## Supported edits
@@ -77,16 +81,18 @@ The compiler plugin runs an MSBuild task, `HotSwapTask`, which, after the `CopyF
     - Static and instance methods
     - Static fields
     - Enumerators and lambdas
-- Same for generic classes and methods (case not supported by Roslyn before .NET 8.0)
+    - Generic classes and methods (case not supported by Roslyn before .NET 8.0)
 - Debugging
-  - Debug symbols are correctly mapped to hotswapped code
+  - Debug symbols are correctly mapped to hotswapped code (WIP)
 
 ### Caveats
 - Functions running on the stack won't get immediately hotswapped
     - The function needs to be called again for new code to run
     - Function calls are effectively boundaries where hotswapped code can start running
-- Reflection only sees the original assembly
-- Compiler-generated state machines are updated as a whole
+- Stack traces for hotswapped code have twice as many frames as normally
+- The original assembly isn't updated for reflection
+  - You can still access reloaded assemblies to get new members (f.e. for an attribute scan)
+- Compiler-generated code is always hotswapped anew
     - If there's some enumerator in progress it won't get hotswapped, only new instances will run new code
 - Multithreading with shared mutable data can cause problems
     - Different threads can start executing new code at different times
