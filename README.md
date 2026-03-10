@@ -86,6 +86,7 @@ The compiler plugin runs an MSBuild task, `HotSwapTask`, which, after the `CopyF
     - Generic classes and methods (case not supported by Roslyn before .NET 8.0)
 - Debugging
   - Debug symbols are correctly mapped to hotswapped code (WIP)
+- Multiple projects/assemblies
 
 ### Caveats
 - Functions running on the stack won't get immediately hotswapped
