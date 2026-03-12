@@ -1,4 +1,7 @@
 # EditCompileReload (ECR)
+[![EditCompileReload](https://img.shields.io/nuget/v/EditCompileReload?label=EditCompileReload)](https://www.nuget.org/packages/EditCompileReload)
+[![EditCompileReload.CompilerPlugin](https://img.shields.io/nuget/v/EditCompileReload.CompilerPlugin?label=EditCompileReload.CompilerPlugin)](https://www.nuget.org/packages/EditCompileReload.CompilerPlugin)
+
 <img width="400" alt="ecr_diagram" src="https://github.com/user-attachments/assets/7a92846c-9795-40e2-9988-1b7696e8bf77" />
 
 Hot code reload as a library for .NET 3.5+ driven by a file watcher.
@@ -35,6 +38,7 @@ EcrLog.errorCallback = s => Log.Error(s);
 Ecr.RegisterFileWatcher(@"C:\Users\User\Documents\EditCompileReload\TestAssembly1\bin\Debug\net472\TestAssembly1.dll_orig"); // <--- Note the .dll_orig when using the compiler plugin
 #endif
 ```
+Recompile during runtime to trigger a reload.
 
 ### With `PersonalDefinitions.targets`
 If you don't want to check in a dependency on ECR into VCS for other developers
@@ -87,6 +91,9 @@ The compiler plugin runs an MSBuild task, `HotSwapTask`, which, after the `CopyF
 - Debugging
   - Debug symbols are correctly mapped to hotswapped code (WIP)
 - Multiple projects/assemblies
+  - Reloading logic runs on a single thread so file watcher triggers are scheduled in the correct order when building multiple projects
+- Callback
+  - Add a static `OnEditCompileReload` parameterless method anywhere in your code for a reload callback
 
 ### Caveats
 - Functions running on the stack won't get immediately hotswapped
