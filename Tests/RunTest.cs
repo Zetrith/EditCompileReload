@@ -19,18 +19,21 @@ public class RunTest
 
     private void LoadOriginalAssembly()
     {
+        EcrLog.verboseCallback = Console.WriteLine;
+        Ecr.writeSwappedAssembly = true;
+
         // Prevent from being loaded as a dependency
         File.Delete("TestAssembly1.dll");
 
         origAsm = AssemblyDefinition.FromImage(
-            PEImage.FromFile(@"..\..\..\..\TestAssembly1\bin\Debug\net472\TestAssembly1.dll"));
+            PEImage.FromFile("../../../../TestAssembly1/bin/Debug/net472/TestAssembly1.dll"));
         AsmWriter.UpdateMemberDobs(origAsm);
 
         var (origAsmBytes, implToOldOrigRid) = AsmWriter.RewriteOriginal(
-            @"..\..\..\..\TestAssembly1\bin\Debug\net472\TestAssembly1.dll");
+            "../../../../TestAssembly1/bin/Debug/net472/TestAssembly1.dll");
 
         var pdb = AsmWriter.RewritePortablePdb(
-            File.ReadAllBytes(@"..\..\..\..\TestAssembly1\bin\Debug\net472\TestAssembly1.pdb"),
+            File.ReadAllBytes("../../../../TestAssembly1/bin/Debug/net472/TestAssembly1.pdb"),
             AssemblyDefinition.FromBytes(origAsmBytes),
             implToOldOrigRid
         );
@@ -44,35 +47,26 @@ public class RunTest
 
         AsmStore.assemblyData[origAsm.Name!].assemblies.Add(origAsmReflection);
         AsmStore.assemblyData[origAsm.Name!].version++;
+
+        // For the embedded file watcher initializer
+        File.Copy(
+            "../../../../TestAssembly1/bin/Debug/net472/TestAssembly1.dll",
+            "../../../../TestAssembly1/bin/Debug/net472/TestAssembly1.dll_orig",
+            true
+        );
     }
 
-    private void LoadChangedAssembly()
+    private void WriteChangedAssembly()
     {
-        var asm2 = AssemblyDefinition.FromImage(
-            PEImage.FromFile(@"..\..\..\..\TestAssembly2\bin\Debug\net472\TestAssembly1.dll"));
-        AsmWriter.UpdateMemberDobs(asm2);
-
-        var (newAsm2Bytes, ptrGetterToOrig, implToOldOrigRid) =
-            AsmWriter.RewriteChanged(asm2);
-        AsmStore.assemblyData[asm2.Name!].version++;
-
-        var newAsm2 = AssemblyDefinition.FromBytes(newAsm2Bytes);
-
-        var pdb = AsmWriter.RewritePortablePdb(
-            File.ReadAllBytes(@"..\..\..\..\TestAssembly2\bin\Debug\net472\TestAssembly1.pdb"),
-            newAsm2,
-            implToOldOrigRid
+        // Trigger the embedded file watcher
+        File.Copy(
+            "../../../../TestAssembly2/bin/Debug/net472/TestAssembly1.dll",
+            "../../../../TestAssembly1/bin/Debug/net472/TestAssembly1.dll_orig",
+            true
         );
 
-        var newAsm2Reflection = AppDomain.CurrentDomain.Load(newAsm2Bytes, pdb);
-
-        File.WriteAllBytes("changed.dll", newAsm2Bytes);
-        File.WriteAllBytes("changed.pdb", pdb);
-
-        AsmHelper.CheckIsUsable(newAsm2Reflection);
-
-        AsmStore.UpdateMethodReferences(newAsm2, newAsm2Reflection, ptrGetterToOrig);
-        Ecr.ResetAllFields();
+        // Wait for the file watcher event to get processed
+        Thread.Sleep(1000);
     }
 
     [Test]
@@ -93,7 +87,7 @@ public class RunTest
             ])
         );
 
-        LoadChangedAssembly();
+        WriteChangedAssembly();
 
         Assert.That(
             origAsmReflection.GetType("TestAssembly1.Class1").GetMethod("TestBasics").Invoke(null, null),
@@ -137,7 +131,7 @@ public class RunTest
             ])
         );
 
-        LoadChangedAssembly();
+        WriteChangedAssembly();
 
         Assert.That(
             origAsmReflection.GetType("TestAssembly1.Class1").GetMethod("TestGenerics").Invoke(null, null),

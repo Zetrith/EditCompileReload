@@ -40,8 +40,14 @@ public class Ecr
         }
     }
 
+    private static HashSet<string> registeredFileWatchers = [];
+
     public static void RegisterFileWatcher(string filePath)
     {
+        filePath = Path.GetFullPath(filePath);
+        if (!registeredFileWatchers.Add(filePath))
+            return;
+
         var fileName = Path.GetFileName(filePath);
         var watcher = new FileSystemWatcher();
         watcher.Path = Path.GetDirectoryName(filePath);
@@ -76,6 +82,8 @@ public class Ecr
         watcher.EnableRaisingEvents = true;
     }
 
+    public static bool writeSwappedAssembly;
+
     private static void ProcessAssembly(string assemblyName, string path)
     {
         EcrLog.Message("ProcessAssembly start");
@@ -91,7 +99,9 @@ public class Ecr
 
             AsmWriter.UpdateMemberDobs(assembly);
             var (newAsmBytes, ptrGetterToOrig, _) = AsmWriter.RewriteChanged(assembly);
-            File.WriteAllBytes("swapped.dll", newAsmBytes);
+
+            if (writeSwappedAssembly)
+                File.WriteAllBytes("swapped.dll", newAsmBytes);
 
             var newAsm = AssemblyDefinition.FromBytes(newAsmBytes);
             var newAsmReflection = AppDomain.CurrentDomain.Load(newAsmBytes);

@@ -99,6 +99,8 @@ public static class AsmWriter
     public static (byte[], Dictionary<string, uint>) RewriteOriginal(string path)
     {
         var watch = Stopwatch.StartNew();
+        EcrLog.Message($"Start write original {path}");
+
         var assembly =
             AssemblyDefinition.FromImage(
                 PEImage.FromFile(path),
@@ -121,17 +123,22 @@ public static class AsmWriter
         var stElemAndReturn =
             new CorLibReplaceImporter(mainModule).ImportMethod(
                 typeof(AsmWriter).GetMethod(nameof(StElemAndReturn))!);
+        var registerFileWatcher =
+            new CorLibReplaceImporter(mainModule).ImportMethod(
+                typeof(Ecr).GetMethod(nameof(Ecr.RegisterFileWatcher))!);
         var runtimeTypeHandleType = new CorLibReplaceImporter(mainModule).ImportType(typeof(RuntimeTypeHandle));
         var objTypeSig = mainModule.CorLibTypeFactory.Object.Type.ToTypeSignature();
 
         int maxGenericParameters = mainModule.TopLevelTypes
             .SelectMany(t => t.Methods)
             .Max(m => (m.DeclaringType?.GenericParameters.Count ?? 0) + m.GenericParameters.Count);
+        if (maxGenericParameters == 0)
+            maxGenericParameters = 1;
         for (var i = 0; i < maxGenericParameters; i++)
             ptrsType.GenericParameters.Add(new GenericParameter($"T{i}"));
         mainModule.TopLevelTypes.Add(ptrsType);
 
-        EcrLog.Message($"Assembly read {watch.GetMillisAndRestart()}");
+        EcrLog.Message($"Assembly read took {watch.GetMillisAndRestart()}ms");
 
         int methodIndex = 0;
         var implToOldOrigRid = new ConcurrentDictionary<string, uint>();
@@ -149,13 +156,6 @@ public static class AsmWriter
             foreach (var m in type.Methods.ToList())
             {
                 if (m.CilMethodBody == null) continue;
-
-                // var ptrFieldForMethod = new FieldDefinition(
-                //     DobCloneImporter.GetMethodFullName(m),
-                //     FieldAttributes.Static | FieldAttributes.Public,
-                //     mainModule.CorLibTypeFactory.IntPtr);
-                //
-                // ptrsType.Fields.Add(ptrFieldForMethod);
 
                 var originalMethodBody = m.CilMethodBody;
                 m.CilMethodBody = new CilMethodBody();
@@ -201,11 +201,22 @@ public static class AsmWriter
         var ptrsCctor = MakePtrsCctor(methodIndex, ptrsType, mainModule);
         ptrsType.Methods.Add(ptrsCctor);
 
-        EcrLog.Message($"Method clone {watch.GetMillisAndRestart()}");
+        var moduleType = mainModule.GetModuleType();
+        var moduleCctor = moduleType!.GetStaticConstructor();
+        if (moduleCctor == null)
+        {
+            moduleCctor = MakeSpecialNameMethod(".cctor", true, mainModule);
+            moduleType.Methods.Add(moduleCctor);
+        }
+
+        moduleCctor.CilMethodBody!.Instructions.Insert(0, CilOpCodes.Ldstr, path + "_orig");
+        moduleCctor.CilMethodBody!.Instructions.Insert(1, CilOpCodes.Call, registerFileWatcher);
+
+        EcrLog.Message($"Method clone took {watch.GetMillisAndRestart()}ms");
 
         var stream = new MemoryStream();
         WriteAssemblyToStream(assembly, stream);
-        EcrLog.Message($"Write to stream {watch.GetMillisAndRestart()}");
+        EcrLog.Message($"Write to stream took {watch.GetMillisAndRestart()}ms");
 
         return (stream.ToArray(), implToOldOrigRid.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
@@ -465,14 +476,7 @@ public static class AsmWriter
 
     private static MethodDefinition MakePtrsCctor(int arrSize, TypeDefinition ptrsType, ModuleDefinition newModule)
     {
-        var cctor = new MethodDefinition(
-            ".cctor",
-            MethodAttributes.Private | MethodAttributes.Static | MethodAttributes.HideBySig |
-            MethodAttributes.RuntimeSpecialName | MethodAttributes.SpecialName,
-            new MethodSignature(
-                CallingConventionAttributes.Default,
-                newModule.CorLibTypeFactory.Void, null)
-        );
+        var cctor = MakeSpecialNameMethod(".cctor", true, newModule);
 
         var typeArgs = new List<TypeSignature>();
 
@@ -556,6 +560,26 @@ public static class AsmWriter
         return ptrGetter;
     }
 
+    private static MethodDefinition MakeSpecialNameMethod(string name, bool @static, ModuleDefinition module)
+    {
+        var method = new MethodDefinition(
+            name,
+            MethodAttributes.Private | MethodAttributes.HideBySig |
+            MethodAttributes.RuntimeSpecialName | MethodAttributes.SpecialName | (@static ? MethodAttributes.Static : 0),
+            new MethodSignature(
+                CallingConventionAttributes.Default | (!@static ? CallingConventionAttributes.HasThis : 0),
+                module.CorLibTypeFactory.Void, null)
+        )
+        {
+            CilMethodBody = new CilMethodBody()
+            {
+                Instructions = { CilOpCodes.Ret }
+            }
+        };
+
+        return method;
+    }
+
     public static (byte[], Dictionary<string, string>, Dictionary<string, uint>) RewriteChanged(AssemblyDefinition assembly)
     {
         var watch = Stopwatch.StartNew();
@@ -605,6 +629,8 @@ public static class AsmWriter
         int maxGenericParameters = mainModule.TopLevelTypes
             .SelectMany(t => t.Methods)
             .Max(m => (m.DeclaringType?.GenericParameters.Count ?? 0) + m.GenericParameters.Count);
+        if (maxGenericParameters == 0)
+            maxGenericParameters = 1;
         for (var i = 0; i < maxGenericParameters; i++)
             ptrsType.GenericParameters.Add(new GenericParameter($"T{i}"));
         newModule.TopLevelTypes.Add(ptrsType);
@@ -622,28 +648,16 @@ public static class AsmWriter
         var ptrsCctor = MakePtrsCctor(methodIndex, ptrsType, newModule);
         ptrsType.Methods.Add(ptrsCctor);
 
-        EcrLog.Message($"Method clone {watch.GetMillisAndRestart()}");
+        EcrLog.Message($"Method clone took {watch.GetMillisAndRestart()}ms");
 
         NormalizeDefinitions();
 
-        EcrLog.Message($"Definition normalization {watch.GetMillisAndRestart()}");
-
-        // foreach (var t in newModule.TopLevelTypes)
-        //     foreach (var c in t.CustomAttributes)
-        //         if (c.Constructor is MemberReference { DeclaringType.Scope: null })
-        //             c.Constructor = new MemberReference(
-        //                 c.Constructor.DeclaringType.Resolve(),
-        //                 c.Constructor.Name,
-        //                 c.Constructor.Signature);
+        EcrLog.Message($"Definition normalization took {watch.GetMillisAndRestart()}ms");
 
         var stream = new MemoryStream();
         WriteAssemblyToStream(newAsm, stream);
 
-        EcrLog.Message($"Write to stream {watch.GetMillisAndRestart()}");
-
-        // var nas = AssemblyDefinition.FromBytes(stream.ToArray());
-        // foreach (var t in nas.ManifestModule.TopLevelTypes)
-        //     new MemberCloner(nas.ManifestModule, ctx => new HelperImporter(ctx)).Include(t).Clone();
+        EcrLog.Message($"Write to stream took {watch.GetMillisAndRestart()}ms");
 
         return (
             stream.ToArray(),
@@ -804,8 +818,8 @@ public static class AsmWriter
                 }
             }
 
-            var cctor = MakeSpecialNameMethod(".cctor", true);
-            var ctor = MakeSpecialNameMethod(".ctor", false);
+            var cctor = MakeSpecialNameMethod(".cctor", true, newModule);
+            var ctor = MakeSpecialNameMethod(".ctor", false, newModule);
 
             // These are handled as existing methods and get the _Impl postfix but must exist for the runtime
             existingTypeStub.Methods.Add(cctor);
@@ -832,26 +846,6 @@ public static class AsmWriter
 
 
             return clonedType;
-        }
-
-        MethodDefinition MakeSpecialNameMethod(string name, bool @static)
-        {
-            var method = new MethodDefinition(
-                name,
-                MethodAttributes.Private | MethodAttributes.HideBySig |
-                MethodAttributes.RuntimeSpecialName | MethodAttributes.SpecialName | (@static ? MethodAttributes.Static : 0),
-                new MethodSignature(
-                    CallingConventionAttributes.Default | (!@static ? CallingConventionAttributes.HasThis : 0),
-                    ptrsType.DeclaringModule!.CorLibTypeFactory.Void, null)
-            )
-            {
-                CilMethodBody = new CilMethodBody()
-                {
-                    Instructions = { CilOpCodes.Ret }
-                }
-            };
-
-            return method;
         }
 
         void HandleNewMethod(MethodDefinition m,
