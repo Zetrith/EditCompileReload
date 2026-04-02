@@ -29,7 +29,6 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.3.3" />
-      <PackageReference Include="EditCompileReload" Version="1.0.1"/>
     </ItemGroup>
 
     <ItemGroup>
