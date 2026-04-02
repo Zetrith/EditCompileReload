@@ -14,7 +14,9 @@ Add the library and plugin as package references in the `.csproj` file. Make sur
   <PackageReference Include="EditCompileReload.CompilerPlugin" Version="_"/>
 </ItemGroup>
 ```
-Then register the file watcher for the project output assembly.
+A file watcher is automatically registered in the module initializer of the project's output assembly by the compiler plugin.
+
+Optionally, you can set ECR's logging callbacks in your code.
 ```csharp
 #if DEBUG
 using EditCompileReload;
@@ -23,7 +25,6 @@ using EditCompileReload;
 #if DEBUG
 EcrLog.messageCallback = ...
 EcrLog.errorCallback = ...
-Ecr.RegisterFileWatcher(\* assembly.dll_orig *\); // <--- Note the .dll_orig when using the compiler plugin
 #endif
 ```
 Example:
@@ -35,7 +36,6 @@ using EditCompileReload;
 #if DEBUG
 EcrLog.messageCallback = s => Log.Message(s);
 EcrLog.errorCallback = s => Log.Error(s);
-Ecr.RegisterFileWatcher(@"C:\Users\User\Documents\EditCompileReload\TestAssembly1\bin\Debug\net472\TestAssembly1.dll_orig"); // <--- Note the .dll_orig when using the compiler plugin
 #endif
 ```
 Recompile during runtime to trigger a reload.
@@ -61,7 +61,7 @@ In your `.csproj`:
 ```xml
 <Import Project="PersonalDefinitions.targets" Condition="exists('PersonalDefinitions.targets')" />
 ```
-The file watcher:
+The callbacks:
 ```csharp
 ```csharp
 #if EDIT_COMPILE_RELOAD
@@ -69,7 +69,8 @@ using EditCompileReload;
 #endif
 // ...
 #if EDIT_COMPILE_RELOAD
-Ecr.RegisterFileWatcher(\* assembly.dll_orig *\); // <--- Note the .dll_orig when using the compiler plugin
+EcrLog.messageCallback = ...
+EcrLog.errorCallback = ...
 #endif
 ```
 

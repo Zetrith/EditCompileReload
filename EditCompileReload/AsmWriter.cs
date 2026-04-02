@@ -101,6 +101,8 @@ public static class AsmWriter
         var watch = Stopwatch.StartNew();
         EcrLog.Message($"Start write original {path}");
 
+        path = Path.GetFullPath(path);
+
         var assembly =
             AssemblyDefinition.FromImage(
                 PEImage.FromFile(path),
