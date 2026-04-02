@@ -20,7 +20,7 @@
       <Title>EditCompileReload.Plugin</Title>
       <PackageId>EditCompileReload.CompilerPlugin</PackageId>
       <Authors>Zetrith</Authors>
-      <Version>1.0.1</Version>
+      <Version>1.0.2</Version>
       <Description>The compiler plugin for EditCompileReload.</Description>
       <PackageProjectUrl>https://github.com/Zetrith/EditCompileReload</PackageProjectUrl>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>

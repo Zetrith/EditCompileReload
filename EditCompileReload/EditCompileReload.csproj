@@ -13,7 +13,7 @@
     <Title>EditCompileReload</Title>
     <PackageId>EditCompileReload</PackageId>
     <Authors>Zetrith</Authors>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Description>Hot code reload as a library for .NET Framework 3.5 and higher.</Description>
     <PackageProjectUrl>https://github.com/Zetrith/EditCompileReload</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

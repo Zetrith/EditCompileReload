@@ -4,7 +4,7 @@ using Task = Microsoft.Build.Utilities.Task;
 
 namespace EditCompileReload.Plugin;
 
-internal class HotSwapTask : Task
+public class HotSwapTask : Task
 {
     public string ProjectAssembly { get; set; }
     public string OutputFolder { get; set; }
